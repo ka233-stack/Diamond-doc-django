@@ -14,12 +14,23 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
 from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('login/', views.login),
-    path('register/', views.register),
-    path('', views.index),
+    re_path(r'^doc/$', views.DocView.as_view()),
+    re_path(r'^doc/(?P<pk>\d+)/$', views.DocView.as_view()),
+    re_path(r'^login/$', views.LoginView.as_view()),
+    re_path(r'^register/$', views.RegisterView.as_view()),
+    path('user/', views.UserView.as_view()),
+    re_path(r'^group/$', views.GroupView.as_view()),
+    re_path(r'^group/(?P<pk>\d+)/$', views.GroupView.as_view()),
+    re_path(r'^comment/(?P<pk>\d+)/$', views.CommentView.as_view()),
+    re_path(r'^group/(?P<pk>\d+)/member/$', views.GroupMemberView.as_view()),
+    re_path(r'^group/(?P<pk>\d+)/member/(?P<pkk>\d+)/$', views.GroupMemberView.as_view()),
+    re_path(r'^favorite/$', views.FavoriteView.as_view()),
+    re_path(r'^favorite/(?P<pk>\d+)/$', views.FavoriteView.as_view()),
+    re_path(r'^browse/$', views.BrowseView.as_view()),
+    re_path(r'^browse/(?P<pk>\d+)/$', views.BrowseView.as_view()),
 ]
