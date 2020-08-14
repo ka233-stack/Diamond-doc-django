@@ -22,35 +22,65 @@ class UserAuthentication:
 class DocView(APIView):
     authentication_classes = [UserAuthentication]
     def get(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
+
         id = kwargs.get('pk')
-        if not id:
-            pass
-        else:
+        doc = models.Doc.objects.get(id=id)
+        if doc.author == request.user:
             result = models.Doc.objects.filter(id=id).first()
             ser = DocListSerializer(instance=result, many=False)
             return Response(ser.data)
-        return Response("失败")
+        elif doc.auth >= 1:
+            result = models.Doc.objects.filter(id=id).first()
+            ser = DocListSerializer(instance=result, many=False)
+            return Response(ser.data)
+        else:
+            return Response("无权限")
 
     def post(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
         ser = DocSerializer(data=request.data)
 
         if ser.is_valid():
             ser.save(author_id=request.user.id)
-            return Response("成功")
+            return Response(ser.data)
         return Response("失败")
 
     def patch(self, request, *args, **kwargs):
+        if not request.user:
+            return Response("请先登录")
         id = kwargs.get('pk')
         doc = models.Doc.objects.get(id=id)
-        if doc.status == 1:
-            return Response('该文档正在被编辑')
-        result = models.Doc.objects.filter(id=id).first()
-        ser = DocListSerializer(instance=result, data=request.data, many=False, partial=True)
-        if ser.is_valid():
-            ser.save()
-            return Response('成功')
-        return Response('失败')
+        if doc.author == request.user or doc.auth >= 3:
+            if doc.status == 1:
+                return Response('该文档正在被编辑')
+            else:
+                result = models.Doc.objects.filter(id=id).first()
+                ser = DocListSerializer(instance=result, data=request.data, many=False, partial=True)
+                if ser.is_valid():
+                    ser.save()
+                    return Response(ser.data)
+        else:
+            return Response('无权限')
 
+
+# 用户文件
+class DocUserView(APIView):
+    authentication_classes = [UserAuthentication]
+    def get(self, request, *args, **kwargs):
+        result = models.Doc.objects.filter(author=request.user.id, delete=0).all()
+        ser = DocListSerializer(instance=result, many=True)
+        return Response(ser.data)
+
+# 回收站中的文件
+class DocBinView(APIView):
+    authentication_classes = [UserAuthentication]
+    def get(self, request, *args, **kwargs):
+        result = models.Doc.objects.filter(author=request.user.id, delete=1).all()
+        ser = DocListSerializer(instance=result, many=True)
+        return Response(ser.data)
 
 class LoginView(APIView):
     def post(self,request,*args,**kwargs):
@@ -89,10 +119,11 @@ class UserView(APIView):
         return Response(ser.data)
 
     def patch(self, request, *args, **kwargs):
+
         ser = UserInfoSerializer(instance=request.user, data=request.data, partial=True)
         if ser.is_valid():
             ser.save()
-            return Response('修改成功')
+            return Response(ser.data)
         return Response('修改失败')
 
 class FavoriteView(APIView):
@@ -109,6 +140,8 @@ class FavoriteView(APIView):
 
     # 添加收藏
     def put(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
         id = kwargs.get('pk')
         doc = models.Doc.objects.get(id=id)
         request.user.favorite.add(doc)
@@ -116,6 +149,8 @@ class FavoriteView(APIView):
 
     # 取消收藏
     def delete(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
         id = kwargs.get('pk')
         doc = models.Doc.objects.get(id=id)
         request.user.favorite.remove(doc)
@@ -135,6 +170,7 @@ class BrowseView(APIView):
 
     # 添加到最近浏览
     def put(self, request, *args, **kwargs):
+
         id = kwargs.get('pk')
         doc = models.Doc.objects.get(id=id)
         request.user.browse.add(doc)
@@ -144,6 +180,8 @@ class GroupView(APIView):
     authentication_classes = [UserAuthentication]
     # 创建团队
     def post(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
         group = models.Groups.objects.filter(name=request.data['name']).first()
         if group:
             return Response('小组名重复')
@@ -171,6 +209,8 @@ class GroupView(APIView):
 
     # 加入团队
     def put(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
         id = kwargs.get('pk')
         group = models.Groups.objects.get(id=id)
         group.member.add(request.user)
@@ -180,6 +220,8 @@ class GroupMemberView(APIView):
     # 退出团队
     authentication_classes = [UserAuthentication]
     def delete(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
         id = kwargs.get('pk')
         group = models.Groups.objects.get(id=id)
         group.member.remove(request.user)
@@ -202,13 +244,23 @@ class CommentView(APIView):
     authentication_classes = [UserAuthentication]
 
     def post(self,request,*args,**kwargs):
+        if not request.user:
+            return Response("请先登录")
         id = kwargs.get('pk')
-        ser = CommentCreateSerializer(data=request.data)
+        doc = models.Doc.objects.get(id=id)
+        if doc.author == request.user:
+            ser = CommentCreateSerializer(data=request.data)
+            if ser.is_valid():
+                ser.save(commenter_id=request.user.id, document_id=id)
+                return Response(ser.data)
+        elif doc.auth >= 2:
+            ser = CommentCreateSerializer(data=request.data)
+            if ser.is_valid():
+                ser.save(commenter_id=request.user.id, document_id=id)
+                return Response(ser.data)
+        else:
+            return Response("无权限")
 
-        if ser.is_valid():
-            ser.save(commenter_id=request.user.id,document_id=id)
-            return Response("成功")
-        return Response("失败")
 
     def get(self,request,*args,**kwargs):
         id = kwargs.get('pk')

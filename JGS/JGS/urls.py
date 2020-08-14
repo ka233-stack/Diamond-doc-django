@@ -33,4 +33,6 @@ urlpatterns = [
     re_path(r'^favorite/(?P<pk>\d+)/$', views.FavoriteView.as_view()),
     re_path(r'^browse/$', views.BrowseView.as_view()),
     re_path(r'^browse/(?P<pk>\d+)/$', views.BrowseView.as_view()),
+    re_path(r'^doc/user/$', views.DocUserView.as_view()),
+    re_path(r'^doc/bin/$', views.DocBinView.as_view()),
 ]
