@@ -28,23 +28,25 @@ class UserRegSerializer(serializers.ModelSerializer):
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
-    favorite_info = serializers.SerializerMethodField()
+
     class Meta:
         model = models.Users
-        fields = ['id', 'username', 'favorite_info']
+        fields = ['favorite']
 
-    def get_favorite_info(self,obj):
-        return [row for row in obj.favorite.all().values()]
 
 class BrowseSerializer(serializers.ModelSerializer):
-    browse_info = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Users
-        fields = ['id', 'username', 'browse_info']
-
-    def get_browse_info(self, obj):
-        return [row for row in obj.browse.all().values()]
+        fields = ['browse']
+    # browse_info = serializers.SerializerMethodField()
+    #
+    # class Meta:
+    #     model = models.Users
+    #     fields = ['id', 'username', 'browse_info']
+    #
+    # def get_browse_info(self, obj):
+    #     return [row.nickname for row in obj.browse.all().values()]
 
 class GroupCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -58,6 +60,12 @@ class GroupSerializer(serializers.ModelSerializer):
         exclude = []
         depth = 1
 
+class GroupLessSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Groups
+        exclude = []
+
+
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Comment
@@ -70,4 +78,29 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         exclude = ['document', 'commenter']
         depth = 1
 
+class ModuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Module
+        exclude = []
+        depth = 1
 
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Message
+        exclude = []
+
+
+class MessageCreateSerializer(serializers.ModelSerializer):     # 只有在申请加入团队时产生消息
+    class Meta:
+        model = models.Message
+        exclude = ['touser', 'senduser', 'content']
+
+class DocPageSerializer(serializers.ModelSerializer):     # 只有在申请加入团队时产生消息
+    nickname = serializers.SerializerMethodField()
+    class Meta:
+        model = models.Doc
+        fields = ['id','title','content','updates','delete','createtime','updatetime','status','auth','author',
+                  'group','nickname']
+
+    def get_nickname(self, obj):
+        return obj.author.nickname
